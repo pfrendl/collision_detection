@@ -1,4 +1,4 @@
-from typing import List, Set, Tuple, Optional
+from typing import Set, Tuple, Optional
 from dataclasses import dataclass
 import numpy as np
 
