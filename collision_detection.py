@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Set, Tuple, Optional
 from dataclasses import dataclass
 import numpy as np
 
@@ -60,3 +60,23 @@ def create_quadtree(positions: np.ndarray, sizes: np.ndarray, expand_threshold: 
         list(range(positions.shape[0])), None)
     expand_quadtree(quadtree, positions, sizes, expand_threshold, min_half_size)
     return quadtree
+
+
+def narrow_phase(quadtree: QuadTree, positions: np.ndarray, sizes: np.ndarray) -> Set[Tuple[int, int]]:
+    if quadtree.cell_indices is None:
+        collision_sets = [narrow_phase(child, positions, sizes) for child in quadtree.children]
+        collision_set = set.union(*collision_sets)
+    else:
+        collision_set = set()
+        for i in range(len(quadtree.cell_indices) - 1):
+            idx_i = quadtree.cell_indices[i]
+            position_i = positions[idx_i]
+            size_i = sizes[idx_i]
+            for j in range(i + 1, len(quadtree.cell_indices)):
+                idx_j = quadtree.cell_indices[j]
+                touch_distance = (size_i + sizes[idx_j]) / 2
+                delta = position_i - positions[idx_j]
+                distance = np.linalg.norm(delta)
+                if distance < touch_distance:
+                    collision_set.add((idx_i, idx_j))
+    return collision_set
