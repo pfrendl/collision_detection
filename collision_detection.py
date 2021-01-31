@@ -7,7 +7,7 @@ import numpy as np
 class QuadTree:
     min_point: np.ndarray
     max_point: np.ndarray
-    cell_indices: Optional[List[int]]
+    cell_indices: Optional[np.ndarray]
     children: Optional[Tuple["QuadTree", "QuadTree", "QuadTree", "QuadTree"]]
 
 
@@ -24,7 +24,6 @@ def expand_quadtree(
             return
 
         cell_indices = quadtree.cell_indices
-        cell_indices_np = np.array(cell_indices)
         quadtree.cell_indices = None
 
         center = quadtree.min_point + half_size
@@ -45,7 +44,7 @@ def expand_quadtree(
                         x0 := quadtree.min_point[0] + i * half_size[0],
                         y0 := quadtree.min_point[1] + j * half_size[1]]),
                     np.array([x0 + half_size[0], y0 + half_size[1]]),
-                    cell_indices_np[cases[:, i, j]], None)
+                    cell_indices[cases[:, i, j]], None)
                 expand_quadtree(child, positions, radii, expand_threshold, min_half_size)
                 children.append(child)
         quadtree.children = tuple(children)
@@ -60,7 +59,7 @@ def create_quadtree(
     quadtree = QuadTree(
         np.array([-1, -1], dtype=np.float),
         np.array([1, 1], dtype=np.float),
-        list(range(positions.shape[0])), None)
+        np.arange(positions.shape[0]), None)
     expand_quadtree(quadtree, positions, radii, expand_threshold, min_half_size)
     return quadtree
 
