@@ -11,7 +11,13 @@ class QuadTree:
     children: Optional[Tuple["QuadTree", "QuadTree", "QuadTree", "QuadTree"]]
 
 
-def expand_quadtree(quadtree: QuadTree, positions: np.ndarray, sizes: np.ndarray, expand_threshold: int, min_half_size: float):
+def expand_quadtree(
+        quadtree: QuadTree,
+        positions: np.ndarray,
+        radii: np.ndarray,
+        expand_threshold: int,
+        min_half_size: float
+) -> None:
     if len(quadtree.cell_indices) >= expand_threshold:
         children = []
         half_size = (quadtree.max_point - quadtree.min_point) / 2
@@ -35,9 +41,9 @@ def expand_quadtree(quadtree: QuadTree, positions: np.ndarray, sizes: np.ndarray
         center = children[0].max_point
         for idx in cell_indices:
             position = positions[idx]
-            half_size = sizes[idx] / 2
-            x_min, y_min = position - half_size
-            x_max, y_max = position + half_size
+            radius = radii[idx]
+            x_min, y_min = position - radius
+            x_max, y_max = position + radius
             if x_min < center[0]:
                 if y_min < center[1]:
                     children[0].cell_indices.append(idx)
@@ -50,31 +56,36 @@ def expand_quadtree(quadtree: QuadTree, positions: np.ndarray, sizes: np.ndarray
                     children[3].cell_indices.append(idx)
 
         for child in children:
-            expand_quadtree(child, positions, sizes, expand_threshold, min_half_size)
+            expand_quadtree(child, positions, radii, expand_threshold, min_half_size)
 
 
-def create_quadtree(positions: np.ndarray, sizes: np.ndarray, expand_threshold: int, min_half_size: float) -> QuadTree:
+def create_quadtree(
+        positions: np.ndarray,
+        radii: np.ndarray,
+        expand_threshold: int,
+        min_half_size: float
+) -> QuadTree:
     quadtree = QuadTree(
         np.array([-1, -1], dtype=np.float),
         np.array([1, 1], dtype=np.float),
         list(range(positions.shape[0])), None)
-    expand_quadtree(quadtree, positions, sizes, expand_threshold, min_half_size)
+    expand_quadtree(quadtree, positions, radii, expand_threshold, min_half_size)
     return quadtree
 
 
-def narrow_phase(quadtree: QuadTree, positions: np.ndarray, sizes: np.ndarray) -> Set[Tuple[int, int]]:
+def narrow_phase(quadtree: QuadTree, positions: np.ndarray, radii: np.ndarray) -> Set[Tuple[int, int]]:
     if quadtree.cell_indices is None:
-        collision_sets = [narrow_phase(child, positions, sizes) for child in quadtree.children]
+        collision_sets = [narrow_phase(child, positions, radii) for child in quadtree.children]
         collision_set = set.union(*collision_sets)
     else:
         collision_set = set()
         for i in range(len(quadtree.cell_indices) - 1):
             idx_i = quadtree.cell_indices[i]
             position_i = positions[idx_i]
-            size_i = sizes[idx_i]
+            radius_i = radii[idx_i]
             for j in range(i + 1, len(quadtree.cell_indices)):
                 idx_j = quadtree.cell_indices[j]
-                touch_distance = (size_i + sizes[idx_j]) / 2
+                touch_distance = radius_i + radii[idx_j]
                 delta = position_i - positions[idx_j]
                 distance = np.linalg.norm(delta)
                 if distance < touch_distance:
