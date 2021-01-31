@@ -22,37 +22,33 @@ def expand_quadtree(
         half_size = (quadtree.max_point - quadtree.min_point) / 2
         if half_size[0] < min_half_size:
             return
-        children = [
-            QuadTree(
-                np.array([
-                    x0 := quadtree.min_point[0] + i * half_size[0],
-                    y0 := quadtree.min_point[1] + j * half_size[1]]),
-                np.array([x0 + half_size[0], y0 + half_size[1]]),
-                [], None)
-            for i in range(2) for j in range(2)]
-        quadtree.children = tuple(children)
+
         cell_indices = quadtree.cell_indices
+        cell_indices_np = np.array(cell_indices)
         quadtree.cell_indices = None
 
-        center = children[0].max_point
-        for idx in cell_indices:
-            position = positions[idx]
-            radius = radii[idx]
-            x_min, y_min = position - radius
-            x_max, y_max = position + radius
-            if x_min < center[0]:
-                if y_min < center[1]:
-                    children[0].cell_indices.append(idx)
-                if y_max >= center[1]:
-                    children[1].cell_indices.append(idx)
-            if x_max >= center[0]:
-                if y_min < center[1]:
-                    children[2].cell_indices.append(idx)
-                if y_max >= center[1]:
-                    children[3].cell_indices.append(idx)
+        center = quadtree.min_point + half_size
+        idx_positions = positions[cell_indices]
+        idx_radii = radii[cell_indices, None]
+        idx_mins = idx_positions - idx_radii
+        idx_maxes = idx_positions + idx_radii
+        min_mask = idx_mins < center
+        max_mask = idx_maxes >= center
+        xy_mask = np.stack([min_mask, max_mask], axis=2)
+        cases = xy_mask[:, 0, :, None] @ xy_mask[:, 1, None, :]
 
-        for child in children:
-            expand_quadtree(child, positions, radii, expand_threshold, min_half_size)
+        children = []
+        for i in range(2):
+            for j in range(2):
+                child = QuadTree(
+                    np.array([
+                        x0 := quadtree.min_point[0] + i * half_size[0],
+                        y0 := quadtree.min_point[1] + j * half_size[1]]),
+                    np.array([x0 + half_size[0], y0 + half_size[1]]),
+                    cell_indices_np[cases[:, i, j]], None)
+                expand_quadtree(child, positions, radii, expand_threshold, min_half_size)
+                children.append(child)
+        quadtree.children = tuple(children)
 
 
 def create_quadtree(
