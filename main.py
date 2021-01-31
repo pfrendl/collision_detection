@@ -12,7 +12,7 @@ if __name__ == "__main__":
     radii = np.random.uniform(low=0.0005, high=0.01, size=(cell_count,))
     expand_threshold = 10
 
-    velocity_dampening = 0.2
+    velocity_dampening = 0.05
 
     cell_firmness = 100
     map_boundary_firmness = 100
@@ -37,7 +37,7 @@ if __name__ == "__main__":
             touch_distances = radii[left] + radii[right]
             collision_depths = np.clip(touch_distances[:, None] - distances, a_min=0, a_max=None)
             collision_force_lengths = cell_firmness * collision_depths
-            collision_force_directions = position_deltas / np.where(position_deltas > 0, distances, 1)
+            collision_force_directions = position_deltas / np.where(distances > 0, distances, 1)
             collision_forces = collision_force_lengths * collision_force_directions
             for collision_idx, (idx_i, idx_j) in enumerate(collision_set):
                 collision_force = collision_forces[collision_idx]
