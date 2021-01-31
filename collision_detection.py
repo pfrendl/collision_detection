@@ -19,21 +19,17 @@ def expand_quadtree(
         min_half_size: float
 ) -> None:
     if len(quadtree.cell_indices) >= expand_threshold:
-        children = []
         half_size = (quadtree.max_point - quadtree.min_point) / 2
         if half_size[0] < min_half_size:
             return
-        for i in range(2):
-            for j in range(2):
-                child = QuadTree(
-                    np.array([
-                        quadtree.min_point[0] + i * half_size[0],
-                        quadtree.min_point[1] + j * half_size[1]]),
-                    np.array([
-                        quadtree.min_point[0] + (i + 1) * half_size[0],
-                        quadtree.min_point[1] + (j + 1) * half_size[1]]),
-                    [], None)
-                children.append(child)
+        children = [
+            QuadTree(
+                np.array([
+                    x0 := quadtree.min_point[0] + i * half_size[0],
+                    y0 := quadtree.min_point[1] + j * half_size[1]]),
+                np.array([x0 + half_size[0], y0 + half_size[1]]),
+                [], None)
+            for i in range(2) for j in range(2)]
         quadtree.children = tuple(children)
         cell_indices = quadtree.cell_indices
         quadtree.cell_indices = None
