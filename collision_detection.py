@@ -72,13 +72,10 @@ def narrow_phase(quadtree: QuadTree, positions: np.ndarray, radii: np.ndarray) -
         collision_set = set()
         for i in range(len(quadtree.cell_indices) - 1):
             idx_i = quadtree.cell_indices[i]
-            position_i = positions[idx_i]
-            radius_i = radii[idx_i]
-            for j in range(i + 1, len(quadtree.cell_indices)):
-                idx_j = quadtree.cell_indices[j]
-                touch_distance = radius_i + radii[idx_j]
-                delta = position_i - positions[idx_j]
-                distance = np.linalg.norm(delta)
-                if distance < touch_distance:
-                    collision_set.add((idx_i, idx_j))
+            idx_j = quadtree.cell_indices[i + 1:]
+            delta = positions[idx_i] - positions[idx_j]
+            touch_distance = radii[idx_i] + radii[idx_j]
+            distance = np.linalg.norm(delta, axis=1)
+            j_idxs = idx_j[distance < touch_distance]
+            collision_set.update(zip(np.full((j_idxs.shape[0],), idx_i), j_idxs))
     return collision_set

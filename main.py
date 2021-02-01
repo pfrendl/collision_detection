@@ -10,7 +10,7 @@ if __name__ == "__main__":
     positions = np.random.normal(loc=0.0, scale=0.2, size=(cell_count, 2))
     velocities = np.zeros_like(positions)
     radii = np.random.uniform(low=0.0005, high=0.01, size=(cell_count,))
-    expand_threshold = 10
+    expand_threshold = 50
 
     velocity_dampening = 0.05
 
