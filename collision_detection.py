@@ -13,8 +13,7 @@ class QuadTree:
 
 def expand_quadtree(
         quadtree: QuadTree,
-        positions: np.ndarray,
-        radii: np.ndarray,
+        bounding_boxes: np.ndarray,
         expand_threshold: int,
         min_half_size: float
 ) -> None:
@@ -27,12 +26,9 @@ def expand_quadtree(
         quadtree.cell_indices = None
 
         center = quadtree.min_point + half_size
-        idx_positions = positions[cell_indices]
-        idx_radii = radii[cell_indices, None]
-        idx_mins = idx_positions - idx_radii
-        idx_maxes = idx_positions + idx_radii
-        min_mask = idx_mins < center
-        max_mask = idx_maxes >= center
+        idx_bounding_boxes = bounding_boxes[cell_indices]
+        min_mask = idx_bounding_boxes[:, 0] < center
+        max_mask = idx_bounding_boxes[:, 1] >= center
         xy_mask = np.stack([min_mask, max_mask], axis=2)
         cases = xy_mask[:, 0, :, None] @ xy_mask[:, 1, None, :]
 
@@ -45,7 +41,7 @@ def expand_quadtree(
                         y0 := quadtree.min_point[1] + j * half_size[1]]),
                     np.array([x0 + half_size[0], y0 + half_size[1]]),
                     cell_indices[cases[:, i, j]], None)
-                expand_quadtree(child, positions, radii, expand_threshold, min_half_size)
+                expand_quadtree(child, bounding_boxes, expand_threshold, min_half_size)
                 children.append(child)
         quadtree.children = tuple(children)
 
@@ -60,7 +56,9 @@ def create_quadtree(
         np.array([-1, -1], dtype=np.float),
         np.array([1, 1], dtype=np.float),
         np.arange(positions.shape[0]), None)
-    expand_quadtree(quadtree, positions, radii, expand_threshold, min_half_size)
+    radii = radii[:, None]
+    bounding_boxes = np.stack([positions - radii, positions + radii], axis=1)
+    expand_quadtree(quadtree, bounding_boxes, expand_threshold, min_half_size)
     return quadtree
 
 
