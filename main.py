@@ -41,10 +41,8 @@ if __name__ == "__main__":
             collision_force_lengths = cell_firmness * collision_depths
             collision_force_directions = position_deltas / np.where(distances > 0, distances, 1)
             collision_forces = collision_force_lengths * collision_force_directions
-            for collision_idx, (idx_i, idx_j) in enumerate(collision_set):
-                collision_force = collision_forces[collision_idx]
-                forces[idx_i] += collision_force
-                forces[idx_j] -= collision_force
+            np.add.at(forces, left, collision_forces)
+            np.add.at(forces, right, -collision_forces)
 
         position_lengths = np.linalg.norm(positions, axis=1, keepdims=True)
         distances_to_map_edge = np.clip(position_lengths - map_radius, a_min=0, a_max=None)
