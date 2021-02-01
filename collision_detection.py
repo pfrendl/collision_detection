@@ -47,17 +47,14 @@ def expand_quadtree(
 
 
 def create_quadtree(
-        positions: np.ndarray,
-        radii: np.ndarray,
+        bounding_boxes: np.ndarray,
         expand_threshold: int,
         min_half_size: float
 ) -> QuadTree:
     quadtree = QuadTree(
         np.array([-1, -1], dtype=np.float),
         np.array([1, 1], dtype=np.float),
-        np.arange(positions.shape[0]), None)
-    radii = radii[:, None]
-    bounding_boxes = np.stack([positions - radii, positions + radii], axis=1)
+        np.arange(bounding_boxes.shape[0]), None)
     expand_quadtree(quadtree, bounding_boxes, expand_threshold, min_half_size)
     return quadtree
 

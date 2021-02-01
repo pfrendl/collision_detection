@@ -24,7 +24,9 @@ if __name__ == "__main__":
     last_simulation = time.perf_counter()
     last_draw = last_simulation
     while True:
-        quadtree = create_quadtree(positions, radii, expand_threshold, 0.01)
+        radii_ = radii[:, None]
+        bounding_boxes = np.stack([positions - radii_, positions + radii_], axis=1)
+        quadtree = create_quadtree(bounding_boxes, expand_threshold, 0.01)
         collision_set = narrow_phase(quadtree, positions, radii)
 
         forces = np.zeros_like(velocities)
