@@ -34,12 +34,13 @@ def expand_quadtree(
 
         children = []
         for i in range(2):
+            x0 = quadtree.min_point[0] + i * half_size[0]
+            x1 = x0 + half_size[0]
             for j in range(2):
+                y0 = quadtree.min_point[1] + j * half_size[1]
+                y1 = y0 + half_size[1]
                 child = QuadTree(
-                    np.array([
-                        x0 := quadtree.min_point[0] + i * half_size[0],
-                        y0 := quadtree.min_point[1] + j * half_size[1]]),
-                    np.array([x0 + half_size[0], y0 + half_size[1]]),
+                    np.array([x0, y0]), np.array([x1, y1]),
                     cell_indices[cases[:, i, j]], None)
                 expand_quadtree(child, bounding_boxes, expand_threshold, min_half_size)
                 children.append(child)
