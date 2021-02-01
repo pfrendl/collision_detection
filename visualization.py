@@ -11,7 +11,7 @@ def draw_quadtree(img: np.ndarray, quadtree: QuadTree, zoom: float, principal_po
     else:
         pt1 = tuple((zoom * quadtree.min_point + principal_point).astype(np.int))
         pt2 = tuple((zoom * quadtree.max_point + principal_point).astype(np.int))
-        cv2.rectangle(img, pt1, pt2, (0.4, 0.4, 0.4), 1)
+        cv2.rectangle(img, pt1, pt2, (102, 102, 102), 1)
 
 
 def draw_collisions(
@@ -26,7 +26,7 @@ def draw_collisions(
         for idx in collision:
             center = tuple((zoom * positions[idx] + principal_point).astype(np.int))
             radius = int(zoom * radii[idx])
-            cv2.circle(img, center, radius, (0.0, 0.0, 1.0), -1)
+            cv2.circle(img, center, radius, (0, 0, 255), -1, cv2.LINE_AA)
 
 
 def draw_cells(
@@ -39,7 +39,7 @@ def draw_cells(
     for position, radius in zip(positions, radii):
         center = tuple((zoom * position + principal_point).astype(np.int))
         radius = int(zoom * radius)
-        cv2.circle(img, center, radius, (0.0, 0.0, 0.0), -1)
+        cv2.circle(img, center, radius, (0.0, 0.0, 0.0), -1, cv2.LINE_AA)
 
 
 def draw(
@@ -53,8 +53,8 @@ def draw(
 ) -> np.ndarray:
     img_res = np.array(img_res)
     principal_point = img_res / 2
-    img = np.full((*img_res[::-1], 3), 0.3, dtype=np.float32)
-    cv2.circle(img, tuple(principal_point.astype(np.int)), int(zoom * map_radius), (1.0, 1.0, 1.0), -1)
+    img = np.full((*img_res[::-1], 3), 77, dtype=np.uint8)
+    cv2.circle(img, tuple(principal_point.astype(np.int)), int(zoom * map_radius), (255, 255, 255), -1, cv2.LINE_AA)
     draw_quadtree(img, quadtree, zoom, principal_point)
     draw_cells(img, positions, radii, zoom, principal_point)
     draw_collisions(img, collision_set, positions, radii, zoom, principal_point)
