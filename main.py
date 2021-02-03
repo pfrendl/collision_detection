@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import time
 from collision_detection import create_quadtree, narrow_phase
+from physics import apply_forces
 from visualization import draw
 
 
@@ -9,13 +10,15 @@ if __name__ == "__main__":
     cell_count = 1000
     positions = np.random.normal(loc=0.0, scale=0.2, size=(cell_count, 2))
     velocities = np.zeros_like(positions)
-    radii = np.random.uniform(low=0.0005, high=0.01, size=(cell_count,))
+    radii = np.random.uniform(low=0.003, high=0.01, size=(cell_count,))
+    masses = radii ** 2 * np.pi
+
     expand_threshold = 50
 
-    velocity_dampening = 0.05
+    velocity_dampening = 0.75
 
-    cell_firmness = 100
-    map_boundary_firmness = 100
+    cell_firmness = 0.05
+    map_boundary_firmness = 0.05
     map_radius = 1.0
 
     img_res = (1440, 900)
@@ -29,33 +32,14 @@ if __name__ == "__main__":
         quadtree = create_quadtree(bounding_boxes, expand_threshold, 0.01)
         collision_set = narrow_phase(quadtree, positions, radii)
 
-        forces = np.zeros_like(velocities)
-        if collision_set:
-            left, right = zip(*collision_set)
-            left = list(left)
-            right = list(right)
-            position_deltas = positions[left] - positions[right]
-            distances = np.linalg.norm(position_deltas, axis=1, keepdims=True)
-            touch_distances = radii[left] + radii[right]
-            collision_depths = np.clip(touch_distances[:, None] - distances, a_min=0, a_max=None)
-            collision_force_lengths = cell_firmness * collision_depths
-            collision_force_directions = position_deltas / np.where(distances > 0, distances, 1)
-            collision_forces = collision_force_lengths * collision_force_directions
-            np.add.at(forces, left, collision_forces)
-            np.add.at(forces, right, -collision_forces)
-
-        position_lengths = np.linalg.norm(positions, axis=1, keepdims=True)
-        distances_to_map_edge = np.clip(position_lengths - map_radius, a_min=0, a_max=None)
-        collision_force_lengths = (cell_firmness + map_boundary_firmness) / 2 * distances_to_map_edge
-        collision_force_directions = positions / np.where(position_lengths > 0, position_lengths, 1)
-        collision_forces = collision_force_lengths * collision_force_directions
-        forces -= collision_forces
+        forces = apply_forces(
+            positions, velocities, radii, cell_firmness, map_boundary_firmness, map_radius, collision_set)
 
         current_time = time.perf_counter()
         delta_time = current_time - last_simulation
         last_simulation = current_time
 
-        velocities = (1 - delta_time * velocity_dampening) * velocities + delta_time * forces
+        velocities = (1 - delta_time * velocity_dampening) * velocities + delta_time * forces / masses[:, None]
         positions += delta_time * velocities
 
         if current_time - last_draw > 0.016:
