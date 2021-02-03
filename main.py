@@ -17,8 +17,8 @@ if __name__ == "__main__":
 
     velocity_dampening = 0.75
 
-    cell_firmness = 0.05
-    map_boundary_firmness = 0.05
+    cell_firmness = 10.0
+    map_boundary_firmness = 10.0
     map_radius = 1.0
 
     img_res = (1440, 900)
