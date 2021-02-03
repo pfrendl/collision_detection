@@ -42,8 +42,8 @@ if __name__ == "__main__":
         velocities = (1 - delta_time * velocity_dampening) * velocities + delta_time * forces / masses[:, None]
         positions += delta_time * velocities
 
-        if current_time - last_draw > 0.016:
-            last_draw = current_time
+        if last_simulation - last_draw > 0.016:
+            last_draw = last_simulation
             img = draw(quadtree, collision_set, positions, radii, map_radius, img_res, zoom)
             cv2.imshow("image", img)
             cv2.waitKey(delay=1)
