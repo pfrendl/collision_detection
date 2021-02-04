@@ -1,77 +1,53 @@
-from typing import Set, Tuple, Optional
-from dataclasses import dataclass
+from typing import Set, Tuple
 import numpy as np
+import itertools
 
 
-@dataclass
-class QuadTree:
-    min_point: np.ndarray
-    max_point: np.ndarray
-    cell_indices: Optional[np.ndarray]
-    children: Optional[Tuple["QuadTree", "QuadTree", "QuadTree", "QuadTree"]]
+def inter_axis(entries):
+    open_entries = set()
+    inter = set()
+    for entry in entries:
+        if entry[1] < 0:
+            id = -entry[1] - 1
+            for open_entry in open_entries:
+                inter.add((open_entry, id) if open_entry < id else (id, open_entry))
+            open_entries.add(id)
+        else:
+            open_entries.remove(entry[1] - 1)
+    return inter
 
 
-def expand_quadtree(
-        quadtree: QuadTree,
-        bounding_boxes: np.ndarray,
-        expand_threshold: int,
-        min_half_size: float
-) -> None:
-    if len(quadtree.cell_indices) >= expand_threshold:
-        half_size = (quadtree.max_point - quadtree.min_point) / 2
-        if half_size[0] < min_half_size:
-            return
+def sweep_and_prune(bounding_boxes: np.ndarray) -> Set[Tuple[int, int]]:
+    x_mins = bounding_boxes[:, 0, 0].tolist()
+    y_mins = bounding_boxes[:, 0, 1].tolist()
+    x_maxes = bounding_boxes[:, 1, 0].tolist()
+    y_maxes = bounding_boxes[:, 1, 1].tolist()
+    idxs = np.arange(start=1, stop=bounding_boxes.shape[0] + 1)
+    nidxs = -idxs
+    idxs = idxs.tolist()
+    nidxs = nidxs.tolist()
+    x_mins = zip(x_mins, nidxs)
+    y_mins = zip(y_mins, nidxs)
+    x_maxes = zip(x_maxes, idxs)
+    y_maxes = zip(y_maxes, idxs)
 
-        cell_indices = quadtree.cell_indices
-        quadtree.cell_indices = None
+    x_entries = sorted(itertools.chain(x_mins, x_maxes), key=lambda x: x[0])
+    y_entries = sorted(itertools.chain(y_mins, y_maxes), key=lambda x: x[0])
 
-        center = quadtree.min_point + half_size
-        idx_bounding_boxes = bounding_boxes[cell_indices]
-        min_mask = idx_bounding_boxes[:, 0] < center
-        max_mask = idx_bounding_boxes[:, 1] >= center
-        xy_mask = np.stack([min_mask, max_mask], axis=2)
-        cases = xy_mask[:, 0, :, None] @ xy_mask[:, 1, None, :]
+    x_inter = inter_axis(x_entries)
+    y_inter = inter_axis(y_entries)
+    collision_set = set.intersection(x_inter, y_inter)
 
-        children = []
-        for i in range(2):
-            x0 = quadtree.min_point[0] + i * half_size[0]
-            x1 = x0 + half_size[0]
-            for j in range(2):
-                y0 = quadtree.min_point[1] + j * half_size[1]
-                y1 = y0 + half_size[1]
-                child = QuadTree(
-                    np.array([x0, y0]), np.array([x1, y1]),
-                    cell_indices[cases[:, i, j]], None)
-                expand_quadtree(child, bounding_boxes, expand_threshold, min_half_size)
-                children.append(child)
-        quadtree.children = tuple(children)
+    return collision_set
 
 
-def create_quadtree(
-        bounding_boxes: np.ndarray,
-        expand_threshold: int,
-        min_half_size: float
-) -> QuadTree:
-    quadtree = QuadTree(
-        np.array([-1, -1], dtype=np.float),
-        np.array([1, 1], dtype=np.float),
-        np.arange(bounding_boxes.shape[0]), None)
-    expand_quadtree(quadtree, bounding_boxes, expand_threshold, min_half_size)
-    return quadtree
-
-
-def narrow_phase(quadtree: QuadTree, positions: np.ndarray, radii: np.ndarray) -> Set[Tuple[int, int]]:
-    if quadtree.cell_indices is None:
-        collision_sets = [narrow_phase(child, positions, radii) for child in quadtree.children]
-        collision_set = set.union(*collision_sets)
-    else:
-        collision_set = set()
-        positions = positions[quadtree.cell_indices]
-        radii = radii[quadtree.cell_indices]
-        for i in range(len(quadtree.cell_indices) - 1):
-            delta = positions[i] - positions[i + 1:]
-            touch_distance = radii[i] + radii[i + 1:]
-            distance = np.linalg.norm(delta, axis=1)
-            j_idxs = quadtree.cell_indices[i + 1:][distance < touch_distance]
-            collision_set.update(zip(np.full((j_idxs.shape[0],), quadtree.cell_indices[i]), j_idxs))
+def narrow_phase(collision_set: Set[Tuple[int, int]], positions: np.ndarray, radii: np.ndarray) -> np.ndarray:
+    if collision_set:
+        collision_set = np.array(list(collision_set))
+        left, right = collision_set[:, 0], collision_set[:, 1]
+        position_deltas = positions[left] - positions[right]
+        distances = np.linalg.norm(position_deltas, axis=1)
+        touch_distances = radii[left] + radii[right]
+        collision_depths = np.clip(touch_distances - distances, a_min=0, a_max=None)
+        collision_set = collision_set[collision_depths > 0]
     return collision_set

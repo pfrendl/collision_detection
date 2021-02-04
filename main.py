@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import time
-from collision_detection import create_quadtree, narrow_phase
+from collision_detection import sweep_and_prune, narrow_phase
 from physics import apply_forces
 from visualization import draw
 
@@ -29,8 +29,8 @@ if __name__ == "__main__":
     while True:
         radii_ = radii[:, None]
         bounding_boxes = np.stack([positions - radii_, positions + radii_], axis=1)
-        quadtree = create_quadtree(bounding_boxes, expand_threshold, 0.01)
-        collision_set = narrow_phase(quadtree, positions, radii)
+        collision_set = sweep_and_prune(bounding_boxes)
+        collision_set = narrow_phase(collision_set, positions, radii)
 
         forces = apply_forces(
             positions, velocities, radii, cell_firmness, map_boundary_firmness, map_radius, collision_set)
@@ -44,6 +44,6 @@ if __name__ == "__main__":
 
         if last_simulation - last_draw > 0.016:
             last_draw = last_simulation
-            img = draw(quadtree, collision_set, positions, radii, map_radius, img_res, zoom)
+            img = draw(collision_set, positions, radii, map_radius, img_res, zoom)
             cv2.imshow("image", img)
             cv2.waitKey(delay=1)
