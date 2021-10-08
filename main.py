@@ -15,8 +15,6 @@ if __name__ == "__main__":
     radii = np.random.uniform(low=0.003, high=0.01, size=(cell_count,))
     masses = radii ** 2 * np.pi
 
-    expand_threshold = 50
-
     velocity_dampening = 0.75
 
     cell_firmness = 10.0
