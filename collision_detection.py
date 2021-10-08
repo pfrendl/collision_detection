@@ -47,6 +47,6 @@ def narrow_phase(collision_set: set[tuple[int, int]], positions: np.ndarray, rad
     position_deltas = positions[left] - positions[right]
     distances = np.linalg.norm(position_deltas, axis=1)
     touch_distances = radii[left] + radii[right]
-    collision_depths = np.clip(touch_distances - distances, a_min=0, a_max=None)
+    collision_depths = touch_distances - distances
     collision_set_np = collision_set_np[collision_depths > 0]
     return collision_set_np
